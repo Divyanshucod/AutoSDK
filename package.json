@@ -1,0 +1,14 @@
+{
+  "name": "autosdk-builder",
+  "version": "1.0.0",
+  "description": "AutoSDK Builder CLI for react-native-hyperkyc-sdk test apps",
+  "main": "cli/autosdk.js",
+  "bin": {
+    "autosdk": "./cli/autosdk.js"
+  },
+  "scripts": {
+    "start": "node cli/autosdk.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
