@@ -1,4 +1,4 @@
-FROM reactnativecommunity/react-native-android:14.0
+FROM --platform=linux/amd64 reactnativecommunity/react-native-android:v20.1
 
 # Dependencies
 # Install Node 22 to match the template engine requirement
