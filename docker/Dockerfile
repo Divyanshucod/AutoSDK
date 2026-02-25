@@ -1,29 +1,36 @@
 FROM --platform=linux/amd64 reactnativecommunity/react-native-android:v20.1
 
-# Dependencies
-# Install Node 22 to match the template engine requirement
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash \
-    && . ~/.nvm/nvm.sh \
-    && nvm install 22 \
-    && nvm use 22
+# Install Node 22 system-wide (NOT via nvm) so it's available to all subprocesses including Gradle
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs
 
-ENV PATH="/root/.nvm/versions/node/v22.14.0/bin:${PATH}"
+# Copy Zscaler Root CA certificate (required for corporate networks with SSL inspection)
+COPY docker/certs/Zscaler_Root_CA.cer /usr/local/share/ca-certificates/Zscaler_Root_CA.crt
 
-# Add ruby for fastlane (optional but good practice)
-RUN apt-get update && apt-get install -y ruby-full
+# Import Zscaler cert into system trust store AND Java truststore
+RUN update-ca-certificates \
+    && JAVA_CACERTS=$(find /usr/lib/jvm -name cacerts -path "*/security/*" | head -1) \
+    && if [ -n "$JAVA_CACERTS" ]; then \
+         keytool -importcert \
+           -alias zscaler-root \
+           -keystore "$JAVA_CACERTS" \
+           -file /usr/local/share/ca-certificates/Zscaler_Root_CA.crt \
+           -storepass changeit \
+           -noprompt; \
+       fi
+
+# Verify node/npx are globally accessible
+RUN node --version && npx --version
 
 WORKDIR /workspace
 
-# Project templates to be copied
+# Project template
 COPY templates/rn-project-template/ /workspace/rn-project-template/
-COPY templates/rn-project-template/package.json /workspace/rn-project-template/package.json
 
-# Warm base node modules cache (optional optimization)
-# RUN cd /workspace/rn-project-template && npm install --no-audit
-
-# Script to be run when the container starts
+# Entrypoint script
 COPY scripts/docker-entrypoint.sh /usr/local/bin/
-
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+
